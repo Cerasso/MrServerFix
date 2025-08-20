@@ -1,0 +1,27 @@
+name: Build Firewall Reset
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.23"
+
+      - name: Build
+        run: go build -o firewall-reset.exe ./...
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: firewall-reset
+          path: firewall-reset.exe
