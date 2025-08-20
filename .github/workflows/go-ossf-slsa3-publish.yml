@@ -6,36 +6,23 @@ on:
     types: [created]
 
 permissions:
-  contents: write       # для загрузки релизных артефактов
-  id-token: write       # для SLSA подписи
-  actions: read         # для reusable workflows
+  contents: write
+  id-token: write
+  actions: read
 
 jobs:
-  build:
+  # === Сборка через SLSA ===
+  slsa-build:
+    uses: slsa-framework/slsa-github-generator/.github/workflows/builder_go_slsa3.yml@main
+    with:
+      go-version: 1.22
+      artifact-path: ./dist
+      upload-assets: false
+
+  # === Публикация через GoReleaser ===
+  goreleaser:
+    needs: slsa-build
     runs-on: ubuntu-latest
-    outputs:
-      artifact-dir: ${{ steps.set-dist.outputs.artifact-dir }}
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      # --- SLSA3 Builder ---
-      - name: Build with SLSA Go Builder
-        uses: slsa-framework/slsa-github-generator/.github/workflows/builder_go_slsa3.yml@main
-        with:
-          go-version: 1.22
-          artifact-path: ./dist
-          upload-assets: false   # мы сами будем загружать через GoReleaser
-
-      # --- Передаём путь до артефактов ---
-      - name: Set dist path
-        id: set-dist
-        run: echo "artifact-dir=./dist" >> $GITHUB_OUTPUT
-
-  release:
-    runs-on: ubuntu-latest
-    needs: build
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -45,7 +32,6 @@ jobs:
         with:
           go-version: 1.22
 
-      # --- GoReleaser Publish ---
       - name: Publish with GoReleaser
         uses: goreleaser/goreleaser-action@v5
         with:
