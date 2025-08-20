@@ -16,8 +16,7 @@ jobs:
     uses: slsa-framework/slsa-github-generator/.github/workflows/builder_go_slsa3.yml@main
     with:
       go-version: 1.22
-      artifact-path: ./dist
-      upload-assets: false
+      output-dir: dist
 
   # === Публикация через GoReleaser ===
   goreleaser:
