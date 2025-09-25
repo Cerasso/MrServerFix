@@ -1,5 +1,3 @@
-//go:build windows
-
 package main
 
 import (
@@ -77,7 +75,6 @@ func main() {
 		fmt.Println("=== Исправление сетевых проблем ===")
 	}
 
-	// Админ-права
 	if !isAdmin() {
 		if !flagQuietStart {
 			fmt.Println("[!] Нет прав администратора. Перезапуск с UAC...")
@@ -92,12 +89,10 @@ func main() {
 		return
 	}
 
-	// Добавляем автозапуск (если ещё нет) — всегда с --quiet-start
 	if exists, _ := autostartExists(appName); !exists {
 		_ = ensureAutostart(appName, true, "--quiet-start")
 	}
 
-	// --- Гибридное получение правил ---
 	comRules, _ := getBlockedFirewallRules_COM()
 	psRules, _ := getBlockedFirewallRules_PS() // если модуль недоступен — просто пусто
 
@@ -111,7 +106,6 @@ func main() {
 		fmt.Println()
 	}
 
-	// Ищем совпадения
 	matches := matchRulesForIPs(merged, targetIPs)
 
 	if len(matches) == 0 {
@@ -135,7 +129,6 @@ func main() {
 		}
 	}
 
-	// --- В самом конце: предложение удалить автозапуск ---
 	if !flagQuietStart {
 		fmt.Println("\n[?] Введите «Да» в течение 5 секунд, чтобы удалить автозапуск.")
 		if inputYesWithin(5 * time.Second) {
@@ -147,8 +140,6 @@ func main() {
 		waitExit()
 	}
 }
-
-// ====================== Админ / окно ======================
 
 func isAdmin() bool {
 	cmd := exec.Command("net", "session")
@@ -198,8 +189,6 @@ func utf16FromString(s string) []uint16 {
 	return append(u, 0)
 }
 
-// ====================== Автозапуск ======================
-
 func ensureAutostart(appName string, useTaskIfAdmin bool, extraArgs ...string) error {
 	exe, err := os.Executable()
 	if err != nil {
@@ -245,16 +234,12 @@ func removeAutostart(appName string) {
 		"/v", appName, "/f").Run()
 }
 
-// ====================== Сброс firewall ======================
-
 func runNetshReset(quiet bool) error {
 	cmd := exec.Command("netsh", "advfirewall", "reset")
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: quiet}
 	_, err := cmd.CombinedOutput()
 	return err
 }
-
-// ====================== Модель правила ======================
 
 type fwRule struct {
 	Name          string      `json:"Name"`
@@ -263,7 +248,6 @@ type fwRule struct {
 	_src          string      // "COM" или "PS"
 }
 
-// приведение Direction к строке
 func normDirection(v interface{}) string {
 	switch t := v.(type) {
 	case string:
@@ -283,8 +267,6 @@ func normDirection(v interface{}) string {
 		return fmt.Sprintf("%v", t)
 	}
 }
-
-// ====================== Источник 1: COM ======================
 
 func getBlockedFirewallRules_COM() ([]fwRule, error) {
 	ps := `
@@ -332,8 +314,6 @@ $result | ConvertTo-Json -Compress -Depth 4
 	}
 	return arr, nil
 }
-
-// ====================== Источник 2: PowerShell NetSecurity ======================
 
 func getBlockedFirewallRules_PS() ([]fwRule, error) {
 	ps := `
@@ -407,8 +387,6 @@ $result | ConvertTo-Json -Compress -Depth 8
 	return arr, nil
 }
 
-// ====================== Merge: COM + PS ======================
-
 func mergeRules(a, b []fwRule) []fwRule {
 	type key struct{ name, dir string }
 	m := make(map[key]fwRule)
@@ -460,8 +438,6 @@ func mergeAddresses(a, b interface{}) interface{} {
 	return out
 }
 
-// ====================== Матчинг IP ======================
-
 func matchRulesForIPs(rules []fwRule, ips []string) map[string][]fwRule {
 	result := make(map[string][]fwRule)
 	for _, ip := range ips {
@@ -508,8 +484,6 @@ func ruleAffectsIP(r fwRule, ip string) bool {
 	}
 	return false
 }
-
-// ====================== Вспомогательные ======================
 
 var csvSplitter = regexp.MustCompile(`\s*,\s*`)
 
